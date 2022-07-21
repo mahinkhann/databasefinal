@@ -1,0 +1,26 @@
+@app.route('/retrieve', methods=['GET', 'POST'])
+def retrieve():
+    msg = ''
+    if request.method == "POST":
+        email = request.form['email']
+        print(email)
+        zipcode = request.form['zipcode']
+        print(zipcode)
+
+        cur.execute('SELECT Password FROM author WHERE EmailAddress = %s and ZipCode = %s UNION SELECT Password FROM reviewer WHERE EmailAddress = %s and ZipCode = %s', (email, zipcode, email, zipcode))
+        valid = cur.fetchone()
+
+
+        if valid:
+            print('Valid')
+            password = valid[0]
+            print(password)
+            msg = 'Your password is ' + password
+            flash(msg)
+            return render_template('getpassword.html', msg = msg)
+
+        elif email == "admin@cpms" and zipcode == "12345":
+            msg = 'Your Password is admin242'
+            return render_template('getpassword.html', msg = msg)
+
+    return render_template('getpassword.html')

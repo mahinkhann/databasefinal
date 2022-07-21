@@ -1,0 +1,88 @@
+<!DOCTYPE ht l>
+<!-- Coding By CodingNepal - youtube.com/codingnepal -->
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename= 'css/regstyle.css') }}">
+  </head>
+  <body>
+
+    
+    <form class="signup-form" action="/register" method="post">
+
+      <!-- form header -->
+      <div class="form-header">
+        <h1>Create Your Streamify Account</h1>
+      </div>
+
+      <!-- form body -->
+      <div class="form-body">
+
+        <!-- Checkbox for user-->
+        <div class="horizontal-group">
+          <div class="form-group left">
+            <label class="label-title">User:</label>
+            <div class="input-group">
+              <label for="listener"><input type="radio" name="usertype" value="listener" id="usertype"> Listener</label>
+              <label for="artist"><input type="radio" name="usertype" value="artist" id="usertype"> Artist</label>
+            </div>
+          </div>
+          
+        <!-- name -->
+        <div class="horizontal-group">
+          <div class="form-group left">
+            <label for="firstname" class="label-title">Name</label>
+            <input type="text" id="name" class="form-input" placeholder="Name" required="required" name="name"/>
+          </div>
+
+        <!-- Email -->
+        <div class="horizontal-group">
+        <div class="form-group left">
+          <label for="phone" class="label-title">Email</label>
+          <input type="text" class="form-control" name="email" id="email"  placeholder="Enter your Email" required="required">
+        </div>
+        <!-- phone num -->
+        <div class="form-group right">
+          <label for="email" class="label-title">Phone Number</label>
+          <input type="text" class="form-control" name="phone" id="phone"  placeholder="Enter your phone number" required="required">
+        </div>
+      </div>
+
+
+        <!-- Passwrod and confirm password -->
+        <div class="horizontal-group">
+          <div class="form-group left">
+            <label for="password" class="label-title">Password</label>
+            <input type="password" id="password" class="form-input" placeholder="enter your password" required="required"name="password">
+          </div>
+          <div class="form-group right">
+            <label for="confirm-password" class="label-title">Confirm Password</label>
+            <input type="password" class="form-input" id="confirm-password" placeholder="enter your password again" required="required"name="confirmpass">
+            <h1>{{msg}}</h1>
+          </div>
+        </div>
+
+        
+      <!-- form-footer -->
+      <div class="form-footer">
+      
+        <button type="submit" class="btn">Register</button>
+      </div>
+
+    </form>
+
+    <!-- Script for range input label -->
+    <script>
+      var rangeLabel = document.getElementById("range-label");
+      var experience = document.getElementById("experience");
+
+      function change() {
+      rangeLabel.innerText = experience.value + "K";
+      }
+    </script>
+
+     <a href="/login" class="nav-link"> < Back to Login</a></li>
+
+  </body>
+</html>

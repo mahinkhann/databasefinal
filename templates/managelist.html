@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename= 'css/editaccount.css') }}">
+    
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bootstrap demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    
+  </head>
+  <div class="topnav">
+    <a class="active" href="/home">Home</a>
+    <a href="/playlist"class="nav-link">Playlists</a>
+    <a href="/search"class="nav-link">Search</a>
+    <a href="/library"class="nav-link">Library</a>
+    <a href="/managelist"class="nav-link">Settings</a>
+    <a href="/logout"class="nav-link">Logout</a>
+  </div> 
+  <body>
+  
+  <div class="wrapper">
+    <div class="profile">
+      <div class="content">
+        <h1>Manage Account</h1>
+        <h2>{{msg}}</h2>
+        <form action="{{ url_for('managelist') }}" method="post" autocomplete="off"> 
+        <form action="">
+          <div class="form-group">
+            <label for="email" class="cols-sm-2 control-label">Choose an account attribute to change:</label>
+            <div class="cols-sm-10">
+             <div class="input-group">
+              <span class="input-group-addon"><i class="fa fa-user fa" aria-hidden="true"></i></span>
+              <select name="to_update" id="to_update">
+                <option value="Name">Name</option>
+                <option value="phone_num">Phone Number</option>
+                <option value="Email">Email Address</option>
+              </select>
+             </div>
+            </div>
+           </div>
+           <div class="form-group">
+            <label for="fname" class="cols-sm-2 control-label">Choose new value:</label>
+            <div class="cols-sm-10">
+             <div class="input-group">
+              <span class="input-group-addon"><i class="fa fa-user fa" aria-hidden="true"></i></span>
+              <input type="text" class="form-control" name="newval" id="newval"  placeholder="Name"/>
+             </div>
+            </div>
+           </div>
+           <div class="form-group">
+            <label for="password" class="cols-sm-2 control-label">Password</label>
+            <div class="cols-sm-10">
+             <div class="input-group">
+              <span class="input-group-addon"><i class="fa fa-lock fa-lg" aria-hidden="true"></i></span>
+              <input type="password" class="form-control" name="password" id="password"  placeholder="Enter your Password"/>
+             </div>
+            </div>
+           </div>
+           <div class="form-group ">
+            <input type="submit" value="Update" class="form-control btn btn-primary " name="">
+            <p style="padding:5px;">
+           </div>
+           
+           <a href="/home" class="nav-link"> < Back to Home</a></li>
+  
+  
+        </form>
+      </div>
+    </div>
+  </div>
+  </body>
+  
