@@ -20,6 +20,8 @@ print("Executed query")
 result = cur.fetchall()
 print(result)
 '''''''''''''''
+
+#index page that determines whether to go home for artist/listener or go home
 @app.route('/', methods=['GET', 'POST'])#i changed this!
 def home():
      # Check if user is loggedin
@@ -37,7 +39,7 @@ def home():
     print('new session')
     return redirect(url_for('login'))
 
-#@app.route('/', methods=['GET', 'POST'])
+#route for logging in to streamify
 @app.route('/login', methods=['GET', 'POST'])#i changed this!
 def login():
     print('in login page')
@@ -78,7 +80,7 @@ def login():
     
     return render_template('login.html', msg=msg) 
 
-    
+#route for registering to streamify    
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     artist_id = cur.execute("SELECT COUNT(*) FROM artist")
@@ -121,8 +123,7 @@ def register():
     return render_template('register.html')
     
 
-    
-
+#route for retrieving lost/forgotten password
 @app.route('/retrieve', methods=['GET', 'POST'])
 def retrieve():
     msg = ''
@@ -146,7 +147,8 @@ def retrieve():
 
     return render_template('retrievepass.html')
 
-
+#route for users to manage their streamify account
+#revise
 @app.route('/manageart', methods=['GET', 'POST'])
 def manageart():
     msg = ''
@@ -205,6 +207,7 @@ def manageart():
 
     return render_template('manageart.html')
 
+#might not be neccessary
 @app.route('/managelist', methods=['GET', 'POST'])
 def managelist():
     msg = ''
@@ -246,6 +249,7 @@ def managelist():
 
     return render_template('managelist.html')
 
+#route for listeners to look up music on streamify
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     cur.execute("SELECT user_id FROM listener WHERE email = %s", [session['id']])
@@ -273,10 +277,7 @@ def search():
     
     return render_template('search.html')
 
-
-
-
-
+#route that takes users to their streamify library
 @app.route('/library', methods=['GET', 'POST'])
 def library():
     cur.execute("SELECT user_id FROM listener WHERE email = %s", [session['id']])
@@ -304,6 +305,7 @@ def library():
         return render_template('library.html', msg = msg)
     return render_template('library.html', library = library)
 
+#route for users to logout of streamify
 @app.route('/logout')
 def logout():
     # Remove session data, this will log the user out
@@ -312,6 +314,7 @@ def logout():
    # Redirect to login page
    return redirect(url_for('home'))
 
+#route for users to like songs and add to library on streamify
 @app.route('/like/<songid>', methods=['GET'])
 def like(songid):
     print(songid)
@@ -333,6 +336,7 @@ def like(songid):
 
     return render_template('search.html', msg = msg)
 
+#route for users to add songs to playlists
 @app.route('/addtoplaylist/<songid>/<playlistid>', methods=['GET'])
 def addtoplaylist(songid, playlistid):
     print(songid)
@@ -354,6 +358,7 @@ def addtoplaylist(songid, playlistid):
 
     return render_template('search.html', msg = msg)
 
+#route for users to view/manage their playlists
 @app.route('/playlist', methods=['GET', 'POST'])
 def playlist():
     cur.execute("SELECT user_id FROM listener WHERE email = %s", [session['id']])
@@ -376,16 +381,20 @@ def playlist():
 
     return render_template("playlist.html", playlists = playlists)
 
+#route for users to delete their streamify playlists
 @app.route('/deleteplaylist/<playlistid>')
 def deleteplaylist(playlistid):
     print('in delete playlist function')
     cur.execute('DELETE FROM playlist WHERE playlist_id = %s', [playlistid])
+    #connection.commit()
     print(cur._last_executed)
-    return render_template("home.html")
+    msg = 'Playlist Deleted'
+    return render_template("home.html", msg = msg)
 
+#route for users to see the songs in their playlists
 @app.route('/playlist_songs/<playlist_id>', methods=['GET', 'POST'])
 def playlist_songs(playlist_id):
-    cur.execute("SELECT playlist_name FROM playlist WHERE playlist_id = %s", (playlist_id))
+    cur.execute("SELECT playlist_name, playlist_id FROM playlist WHERE playlist_id = %s", (playlist_id))
     playlist_name = cur.fetchone()
     print(playlist_name)
     cur.execute("SELECT song_id, title, name FROM playlist_songs NATURAL JOIN song NATURAL JOIN artist WHERE playlist_id = %s", (playlist_id))
@@ -412,6 +421,7 @@ def playlist_songs(playlist_id):
     print('made it to the end')
     return render_template('playlistsongs.html', library = library, playlist_name = playlist_name)
 
+#route for artists to see the statistics of their songs
 @app.route('/statistics')
 def statistics():
     cur.execute("SELECT artist_id FROM artist WHERE email = %s", [session['id']])
@@ -426,19 +436,86 @@ def statistics():
 
     return render_template("statistics.html", top_songs = top_songs)
 
+#route that allows artist to see their songs and manage them in a crud table
 @app.route('/managesongs')
 def managesongs():
     cur.execute("SELECT artist_id FROM artist WHERE email = %s", [session['id']])
     print(cur._last_executed)
     id = cur.fetchone()
     msg = ''
-    cur.execute('SELECT title, release_date, genre FROM song WHERE artist_id = %s', [id[0]])
+    cur.execute('SELECT title, release_date, genre, song_id FROM song WHERE artist_id = %s', [id[0]])
     songs = cur.fetchall()
     for song in songs:
         print(songs[0])
 
     return render_template("managesongs.html", songs = songs)
 
-@app.route('/upload')
+#route for artists to upload their songs
+@app.route('/upload', methods=['GET', 'POST'])
 def upload():
+    if request.method == "POST":
+        #algorithm for getting new song id
+        song_id = cur.execute("SELECT COUNT(*) FROM song")
+        song_id = cur.fetchone()[0]
+        song_id += 1
+
+        release_date = 0
+
+        #algorithm for getting the artist id
+        cur.execute("SELECT artist_id FROM artist WHERE email = %s", [session['id']])
+        print(cur._last_executed)
+        id = cur.fetchone()
+        print(id)
+
+        song_name = request.form['title']
+        genre = request.form['genre']
+        cur.execute('INSERT INTO song (song_id, likes, genre, title, artist_id) VALUES(%s, 0, %s, %s, %s)', (song_id, genre, song_name, id[0]))
+        print(cur._last_executed)
+        #connection.commit()
+        msg = 'Song Uploaded'
+
+        return render_template('homepageartist.html', msg = msg)
+
     return render_template('uploadmusic.html')
+
+#removes songs from library
+@app.route('/remove_song/<song_id>')
+def remove_song(song_id):
+    cur.execute("SELECT user_id FROM listener WHERE email = %s", [session['id']])
+    id = cur.fetchone()
+    print(id)
+
+    cur.execute('DELETE FROM liked_songs WHERE song_id = %s and user_id = %s', (song_id, id))#query for removing song from liked_songs
+    #connection.commit
+    msg = 'Song removed from library'
+
+    return render_template('home.html', msg = msg)
+
+#removes songs from a playlist
+@app.route('/remove_song_playlist/<song_id>/<playlist_id>')
+def remove_song_playlist(song_id, playlist_id):
+    cur.execute('DELETE FROM playlist_songs WHERE song_id = %s AND playlist_id = %s', (song_id, playlist_id))
+    #connection.commit
+    print(cur._last_executed)
+    msg = 'Song removed from playlist'
+    
+    return render_template('home.html', msg = msg)
+
+#deletes a playlist
+@app.route('/delete_playlist/<playlist_id>')
+def delete_playlist(playlist_id):
+    cur.execute('DELETE FROM playlist WHERE playlist_id = %s', playlist_id)
+    print(cur._last_executed)
+    #connection.commit()
+    msg = 'Playlist deleted'
+    return render_template('home.html', msg = msg)
+
+#deletes songs off streamify
+@app.route('/delete_song/<song_id>')
+def delete_song(song_id):
+    cur.execute('DELETE FROM song WHERE song_id = %s', [song_id])
+    print(cur._last_executed)
+    #connection.commit()
+    msg = 'Song deleted from Streamify'
+    return render_template('homepageartist.html', msg = msg)
+
