@@ -20,7 +20,7 @@ print("Executed query")
 result = cur.fetchall()
 print(result)
 '''''''''''''''
-@app.route('/home', methods=['GET', 'POST'])#i changed this!
+@app.route('/', methods=['GET', 'POST'])#i changed this!
 def home():
      # Check if user is loggedin
     if 'loggedin' in session:
@@ -30,7 +30,7 @@ def home():
         if account:
             return render_template('home.html')
         else:
-            return render_template('home.html')
+            return render_template('homepageartist.html')
         # User is loggedin show them the home page
         #return render_template('homepageauthor.html')
     # User is not loggedin redirect to login page
@@ -38,7 +38,6 @@ def home():
     return redirect(url_for('login'))
 
 #@app.route('/', methods=['GET', 'POST'])
-@app.route('/')
 @app.route('/login', methods=['GET', 'POST'])#i changed this!
 def login():
     print('in login page')
@@ -69,7 +68,7 @@ def login():
             account = cur.fetchone()
 
             if account:
-                return render_template('home.html') #supposed to be song.html testing other html with this 
+                return render_template('homepageartist.html') #supposed to be song.html testing other html with this 
             else:
                 return render_template('home.html')
         else:
@@ -165,24 +164,44 @@ def manageart():
         password = request.form['password']
         print(password)
 
-        valid = cur.execute('SELECT * FROM artist WHERE password = %s', [password])
+        if artist_id:
+            valid = cur.execute('SELECT * FROM artist WHERE password = %s', [password])
 
-        if valid:
-            print('valid')
-            statement1 = 'Update artist SET %s = ' 
-            statement2 = '%s WHERE artist_id = %s'
-            value = to_update
-            inputs = (new_val, artist_id[0])
-            new = statement1 % value
-            print(new)
-            input = new + statement2
-            print(input)
-            cur.execute(input, inputs)
-            connection.commit()
-            print(cur._last_executed)
-            print(cur.execute('Select name from artist where artist_id = %s', [artist_id] ))
-            msg = 'Account change successful!'
-            return render_template('manageart.html', msg = msg)
+            if valid:
+                print('valid artist')
+                statement1 = 'Update artist SET %s = ' 
+                statement2 = '%s WHERE artist_id = %s'
+                value = to_update
+                inputs = (new_val, artist_id[0])
+                new = statement1 % value
+                print(new)
+                input = new + statement2
+                print(input)
+                cur.execute(input, inputs)
+                connection.commit()
+                print(cur._last_executed)
+                print(cur.execute('Select name from artist where artist_id = %s', [artist_id] ))
+                msg = 'Account change successful!'
+                return render_template('manageart.html', msg = msg)
+        else:
+            valid = cur.execute('SELECT * FROM listener WHERE password = %s', [password])
+
+            if valid:
+                print('valid artist')
+                statement1 = 'Update listener SET %s = ' 
+                statement2 = '%s WHERE user_id = %s'
+                value = to_update
+                inputs = (new_val, artist_id[0])
+                new = statement1 % value
+                print(new)
+                input = new + statement2
+                print(input)
+                cur.execute(input, inputs)
+                connection.commit()
+                print(cur._last_executed)
+                print(cur.execute('Select * from artist where artist_id = %s', [artist_id] ))
+                msg = 'Account change successful!'
+                return render_template('manageart.html', msg = msg)
 
     return render_template('manageart.html')
 
@@ -393,3 +412,33 @@ def playlist_songs(playlist_id):
     print('made it to the end')
     return render_template('playlistsongs.html', library = library, playlist_name = playlist_name)
 
+@app.route('/statistics')
+def statistics():
+    cur.execute("SELECT artist_id FROM artist WHERE email = %s", [session['id']])
+    print(cur._last_executed)
+    id = cur.fetchone()
+    print(id)
+    msg = ''
+    cur.execute('SELECT likes, release_date, title FROM song WHERE artist_id = %s ORDER BY likes DESC;', [id[0]])
+    top_songs = cur.fetchall()
+    for songs in top_songs:
+        print(songs[0])
+
+    return render_template("statistics.html", top_songs = top_songs)
+
+@app.route('/managesongs')
+def managesongs():
+    cur.execute("SELECT artist_id FROM artist WHERE email = %s", [session['id']])
+    print(cur._last_executed)
+    id = cur.fetchone()
+    msg = ''
+    cur.execute('SELECT title, release_date, genre FROM song WHERE artist_id = %s', [id[0]])
+    songs = cur.fetchall()
+    for song in songs:
+        print(songs[0])
+
+    return render_template("managesongs.html", songs = songs)
+
+@app.route('/upload')
+def upload():
+    return render_template('uploadmusic.html')
