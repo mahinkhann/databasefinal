@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, session, redirect, url_for, f
 from multiprocessing import connection
 import pymysql
 
-connection = pymysql.connect(host="localhost" , user="root", password="Hulkiscool", database="streamify")
+connection = pymysql.connect(host="localhost" , user="root", password="root", database="streamify")
 cur = connection.cursor()
 
 app = Flask(__name__)
@@ -227,15 +227,6 @@ def managelist():
 
     return render_template('managelist.html')
 
-@app.route('/playlist', methods=['GET', 'POST'])
-def playlist():
-        return render_template('playlist.html')
-
-
-
-
-
-
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     cur.execute("SELECT user_id FROM listener WHERE email = %s", [session['id']])
@@ -343,3 +334,62 @@ def addtoplaylist(songid, playlistid):
     msg = 'Song added to playlist'
 
     return render_template('search.html', msg = msg)
+
+@app.route('/playlist', methods=['GET', 'POST'])
+def playlist():
+    cur.execute("SELECT user_id FROM listener WHERE email = %s", [session['id']])
+    id = cur.fetchone()
+    msg = ''
+    cur.execute('SELECT playlist_name, playlist_id FROM playlist WHERE user_id = %s', [id[0]])
+    playlists = cur.fetchall()
+    for playlist in playlists:
+        print(playlist[0])
+
+        if request.method == "POST":
+            playlist_id = cur.execute("SELECT COUNT(*) FROM playlist")
+            playlist_id = cur.fetchone()[0]
+            playlist_id += 1
+            new_playlist = request.form['newplaylist']
+            cur.execute("INSERT INTO playlist (playlist_id, playlist_name, user_id) VALUES(%s, %s, %s)", (playlist_id, new_playlist, id[0]))
+            print(cur._last_executed)
+            connection.commit
+            return render_template("home.html")
+
+    return render_template("playlist.html", playlists = playlists)
+
+@app.route('/deleteplaylist/<playlistid>')
+def deleteplaylist(playlistid):
+    print('in delete playlist function')
+    cur.execute('DELETE FROM playlist WHERE playlist_id = %s', [playlistid])
+    print(cur._last_executed)
+    return render_template("home.html")
+
+@app.route('/playlist_songs/<playlist_id>', methods=['GET', 'POST'])
+def playlist_songs(playlist_id):
+    cur.execute("SELECT playlist_name FROM playlist WHERE playlist_id = %s", (playlist_id))
+    playlist_name = cur.fetchone()
+    print(playlist_name)
+    cur.execute("SELECT song_id, title, name FROM playlist_songs NATURAL JOIN song NATURAL JOIN artist WHERE playlist_id = %s", (playlist_id))
+    print(cur._last_executed)
+    library = cur.fetchall()
+    print(library)
+    msg = ''
+    if request.method == "POST":
+        search = request.form['searchval']
+        print(search)
+        input = '%' + search + '%'
+        print(input)
+        #cur.execute("SELECT title, genre, release_date, name, song_id FROM song natural join artist WHERE title LIKE %s", input)
+        cur.execute("SELECT song_id, title, name FROM playlist_songs natural join song natural join artist WHERE title LIKE %s and playlist_id = %s", (input, playlist_id))
+        print(cur._last_executed)
+        library = cur.fetchall()
+        if library:
+            print(library)
+            msg = 'Results:'
+            return render_template("playlistsongs.html", msg = msg, library = library)
+        else:
+            msg = 'Sorry we could not find anything'
+            return render_template('playlistsongs.html', msg = msg)
+    print('made it to the end')
+    return render_template('playlistsongs.html', library = library, playlist_name = playlist_name)
+
