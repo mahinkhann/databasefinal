@@ -31,9 +31,10 @@
           <tbody>
             {% for playlist in playlists %}
             <tr>
-              <a href="/playlist_songs/{{playlist[1]}}">{{playlist[0]}}</a>
-              <td width="130">
+              <td href="/playlist_songs/{{playlist[1]}}">{{playlist[0]}}</td>
+              <td width="75">
                 <a href="/delete_playlist/{{playlist[1]}}" class="btn btn-secondary btn-sm">Delete</a>
+                <a href="/playlist_songs/{{playlist[1]}}" class="btn btn-secondary btn-sm">View Playlist</a>
               </div>
               </td>
             </tr>

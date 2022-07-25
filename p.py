@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, session, redirect, url_for, f
 from multiprocessing import connection
 import pymysql
 
-connection = pymysql.connect(host="localhost" , user="root", password="root", database="streamify")
+connection = pymysql.connect(host="localhost" , user="root", password="Hulkiscool", database="streamify")
 cur = connection.cursor()
 
 app = Flask(__name__)
@@ -24,15 +24,19 @@ print(result)
 #index page that determines whether to go home for artist/listener or go home
 @app.route('/', methods=['GET', 'POST'])#i changed this!
 def home():
+    cur.execute('SELECT * FROM song ORDER BY likes DESC LIMIT 5')
+    results = cur.fetchall()
+    for song in results:
+        print(song)
      # Check if user is loggedin
     if 'loggedin' in session:
         cur.execute('SELECT * FROM listener WHERE email = %s', [session['id']])
         account = cur.fetchone()
 
         if account:
-            return render_template('home.html')
+            return render_template('home.html', results = results)
         else:
-            return render_template('homepageartist.html')
+            return render_template('homepageartist.html', results = results)
         # User is loggedin show them the home page
         #return render_template('homepageauthor.html')
     # User is not loggedin redirect to login page
@@ -42,6 +46,10 @@ def home():
 #route for logging in to streamify
 @app.route('/login', methods=['GET', 'POST'])#i changed this!
 def login():
+    cur.execute('SELECT * FROM song ORDER BY likes DESC LIMIT 5')
+    results = cur.fetchall()
+    for song in results:
+        print(song)
     print('in login page')
     msg = ''
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
@@ -70,9 +78,9 @@ def login():
             account = cur.fetchone()
 
             if account:
-                return render_template('homepageartist.html') #supposed to be song.html testing other html with this 
+                return render_template('homepageartist.html', results = results) #supposed to be song.html testing other html with this 
             else:
-                return render_template('home.html')
+                return render_template('home.html', results =results)
         else:
             # Account doesnt exist or username/password incorrect
             msg = 'Incorrect username/password!'
@@ -166,46 +174,32 @@ def manageart():
         password = request.form['password']
         print(password)
 
-        if artist_id:
-            valid = cur.execute('SELECT * FROM artist WHERE password = %s', [password])
+        cur.execute('SELECT * FROM artist WHERE password = %s', [password])
+        valid = cur.fetchall()
+        print(valid)
 
-            if valid:
-                print('valid artist')
-                statement1 = 'Update artist SET %s = ' 
-                statement2 = '%s WHERE artist_id = %s'
-                value = to_update
-                inputs = (new_val, artist_id[0])
-                new = statement1 % value
-                print(new)
-                input = new + statement2
-                print(input)
-                cur.execute(input, inputs)
-                connection.commit()
-                print(cur._last_executed)
-                print(cur.execute('Select name from artist where artist_id = %s', [artist_id] ))
-                msg = 'Account change successful!'
-                return render_template('manageart.html', msg = msg)
+        if valid:
+            print('valid artist')
+            statement1 = 'Update artist SET %s = ' 
+            statement2 = '%s WHERE artist_id = %s'
+            value = to_update
+            inputs = (new_val, artist_id[0])
+            new = statement1 % value
+            print(new)
+            input = new + statement2
+            print(input)
+            cur.execute(input, inputs)
+            connection.commit()
+            print(cur._last_executed)
+            print(cur.execute('Select name from artist where artist_id = %s', [artist_id] ))
+            msg = 'Account change successful!'
+            return render_template('manage.html', msg = msg)
+        
         else:
-            valid = cur.execute('SELECT * FROM listener WHERE password = %s', [password])
+            msg = 'Incorrect Password'
+            return render_template('manage.html', msg = msg)
 
-            if valid:
-                print('valid artist')
-                statement1 = 'Update listener SET %s = ' 
-                statement2 = '%s WHERE user_id = %s'
-                value = to_update
-                inputs = (new_val, artist_id[0])
-                new = statement1 % value
-                print(new)
-                input = new + statement2
-                print(input)
-                cur.execute(input, inputs)
-                connection.commit()
-                print(cur._last_executed)
-                print(cur.execute('Select * from artist where artist_id = %s', [artist_id] ))
-                msg = 'Account change successful!'
-                return render_template('manageart.html', msg = msg)
-
-    return render_template('manageart.html')
+    return render_template('manage.html')
 
 #might not be neccessary
 @app.route('/managelist', methods=['GET', 'POST'])
@@ -328,13 +322,17 @@ def like(songid):
     statement2 = '%s)' % user_id[0]
     finalstatement = statement + statement2
     print(finalstatement)
-    cur.execute(finalstatement, songid)
-    connection.commit()
-    #cur.execute("INSERT INTO liked_songs (song_id, user_id) VALUES(%d, %d)", (songid, user_id[0]))
-    print(cur._last_executed)
-    msg = 'Song added to liked songs'
-
-    return render_template('search.html', msg = msg)
+    try:
+        cur.execute(finalstatement, songid)
+        connection.commit()
+        #cur.execute("INSERT INTO liked_songs (song_id, user_id) VALUES(%d, %d)", (songid, user_id[0]))
+        print(cur._last_executed)
+        msg = 'Song added to liked songs'
+    except:
+        msg = 'Song already liked'
+        return render_template('search.html', msg = msg)
+    else:
+        return render_template('search.html', msg = msg)
 
 #route for users to add songs to playlists
 @app.route('/addtoplaylist/<songid>/<playlistid>', methods=['GET'])
@@ -351,45 +349,63 @@ def addtoplaylist(songid, playlistid):
     #statement = 'INSERT INTO liked_songs VALUES(song_id, user_id) VALUES(%d, %d)' % values
     #print(statement)
     #cur.execute(statement, args=None)
-    cur.execute("INSERT INTO playlist_songs (playlist_id, song_id) VALUES(%s, %s)", (playlistid, songid))
-    print(cur._last_executed)
-    connection.commit()
-    msg = 'Song added to playlist'
-
-    return render_template('search.html', msg = msg)
+    try:
+        cur.execute("INSERT INTO playlist_songs (playlist_id, song_id) VALUES(%s, %s)", (playlistid, songid))
+        print(cur._last_executed)
+        connection.commit()
+        msg = 'Song added to playlist'
+    
+    except:
+        msg = 'Song Already in this playlist'
+        return render_template('search.html', msg = msg)
+    else:
+        return render_template('search.html', msg = msg)
 
 #route for users to view/manage their playlists
 @app.route('/playlist', methods=['GET', 'POST'])
 def playlist():
+    cur.execute('SELECT * FROM song ORDER BY likes DESC LIMIT 5')
+    results = cur.fetchall()
+    for song in results:
+        print(song)
     cur.execute("SELECT user_id FROM listener WHERE email = %s", [session['id']])
     id = cur.fetchone()
+    print(id)
     msg = ''
     cur.execute('SELECT playlist_name, playlist_id FROM playlist WHERE user_id = %s', [id[0]])
     playlists = cur.fetchall()
+    print(playlists)
     for playlist in playlists:
         print(playlist[0])
 
-        if request.method == "POST":
-            playlist_id = cur.execute("SELECT COUNT(*) FROM playlist")
-            playlist_id = cur.fetchone()[0]
-            playlist_id += 1
-            new_playlist = request.form['newplaylist']
-            cur.execute("INSERT INTO playlist (playlist_id, playlist_name, user_id) VALUES(%s, %s, %s)", (playlist_id, new_playlist, id[0]))
-            print(cur._last_executed)
-            connection.commit
-            return render_template("home.html")
+    if request.method == "POST":
+        print('in post')
+        playlist_id = cur.execute("SELECT COUNT(*) FROM playlist")
+        print(cur._last_executed)
+        playlist_id = cur.fetchone()[0]
+        playlist_id += 1
+        new_playlist = request.form['newplaylist']
+        cur.execute("INSERT INTO playlist (playlist_id, playlist_name, user_id) VALUES(%s, %s, %s)", (playlist_id, new_playlist, id[0]))
+        print(cur._last_executed)
+        connection.commit
+        msg = 'Playlist Created'
+        return render_template("home.html", msg = msg, results=results)
 
     return render_template("playlist.html", playlists = playlists)
 
 #route for users to delete their streamify playlists
 @app.route('/deleteplaylist/<playlistid>')
 def deleteplaylist(playlistid):
+    cur.execute('SELECT * FROM song ORDER BY likes DESC LIMIT 5')
+    results = cur.fetchall()
+    for song in results:
+        print(song)
     print('in delete playlist function')
     cur.execute('DELETE FROM playlist WHERE playlist_id = %s', [playlistid])
     #connection.commit()
     print(cur._last_executed)
     msg = 'Playlist Deleted'
-    return render_template("home.html", msg = msg)
+    return render_template("home.html", msg = msg, results = results)
 
 #route for users to see the songs in their playlists
 @app.route('/playlist_songs/<playlist_id>', methods=['GET', 'POST'])
@@ -453,6 +469,11 @@ def managesongs():
 #route for artists to upload their songs
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
+    cur.execute('SELECT * FROM song ORDER BY likes DESC LIMIT 5')
+    results = cur.fetchall()
+    for song in results:
+        print(song)
+     # Check if user 
     if request.method == "POST":
         #algorithm for getting new song id
         song_id = cur.execute("SELECT COUNT(*) FROM song")
@@ -471,51 +492,72 @@ def upload():
         genre = request.form['genre']
         cur.execute('INSERT INTO song (song_id, likes, genre, title, artist_id) VALUES(%s, 0, %s, %s, %s)', (song_id, genre, song_name, id[0]))
         print(cur._last_executed)
-        #connection.commit()
+        connection.commit()
         msg = 'Song Uploaded'
 
-        return render_template('homepageartist.html', msg = msg)
+        return render_template('homepageartist.html', msg = msg, results=results)
 
     return render_template('uploadmusic.html')
 
 #removes songs from library
 @app.route('/remove_song/<song_id>')
 def remove_song(song_id):
+    cur.execute('SELECT * FROM song ORDER BY likes DESC LIMIT 5')
+    results = cur.fetchall()
+    for song in results:
+        print(song)
+     # Check if user 
     cur.execute("SELECT user_id FROM listener WHERE email = %s", [session['id']])
     id = cur.fetchone()
     print(id)
 
     cur.execute('DELETE FROM liked_songs WHERE song_id = %s and user_id = %s', (song_id, id))#query for removing song from liked_songs
-    #connection.commit
+    connection.commit
     msg = 'Song removed from library'
 
-    return render_template('home.html', msg = msg)
+    return render_template('home.html', msg = msg, results=results)
 
 #removes songs from a playlist
 @app.route('/remove_song_playlist/<song_id>/<playlist_id>')
 def remove_song_playlist(song_id, playlist_id):
+    cur.execute('SELECT * FROM song ORDER BY likes DESC LIMIT 5')
+    results = cur.fetchall()
+    for song in results:
+        print(song)
+     # Check if user 
     cur.execute('DELETE FROM playlist_songs WHERE song_id = %s AND playlist_id = %s', (song_id, playlist_id))
-    #connection.commit
+    connection.commit
     print(cur._last_executed)
     msg = 'Song removed from playlist'
     
-    return render_template('home.html', msg = msg)
+    return render_template('home.html', msg = msg, results = results)
 
 #deletes a playlist
 @app.route('/delete_playlist/<playlist_id>')
 def delete_playlist(playlist_id):
+    cur.execute('SELECT * FROM song ORDER BY likes DESC LIMIT 5')
+    results = cur.fetchall()
+    for song in results:
+        print(song)
     cur.execute('DELETE FROM playlist WHERE playlist_id = %s', playlist_id)
     print(cur._last_executed)
-    #connection.commit()
+    connection.commit()
     msg = 'Playlist deleted'
-    return render_template('home.html', msg = msg)
+    return render_template('home.html', msg = msg, results=results)
 
 #deletes songs off streamify
 @app.route('/delete_song/<song_id>')
 def delete_song(song_id):
+    cur.execute('SELECT * FROM song ORDER BY likes DESC LIMIT 5')
+    results = cur.fetchall()
+    for song in results:
+        print(song)
+     # Check if user 
     cur.execute('DELETE FROM song WHERE song_id = %s', [song_id])
+    cur.execute('DELETE FROM liked_songs WHERE song_id = %s', (song_id))#query for removing song from liked_songs
+    cur.execute('DELETE FROM playlist_songs WHERE song_id = %s', (song_id))#query for removing song from liked_songs
     print(cur._last_executed)
-    #connection.commit()
+    connection.commit()
     msg = 'Song deleted from Streamify'
-    return render_template('homepageartist.html', msg = msg)
+    return render_template('homepageartist.html', msg = msg, results=results)
 
